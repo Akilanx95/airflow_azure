@@ -1,0 +1,8 @@
+apache-airflow==2.4.1
+pandas
+pyarrow
+pyhdb
+azure-storage-blob
+azure-keyvault-secrets
+sqlalchemy
+databricks-api
