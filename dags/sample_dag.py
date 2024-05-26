@@ -1,7 +1,8 @@
 from airflow import DAG
 from airflow.providers.databricks.operators.databricks import DatabricksSubmitRunOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from datetime import datetime
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
@@ -22,7 +23,7 @@ def get_secret(secret_name):
     secret = client.get_secret(secret_name)
     return secret.value
 
-def save_sap_credentials_to_dbfs():
+def fetch_metadata():
     postgres_conn_id = "your_postgres_conn_id"
     query = "SELECT * FROM source_meta_table WHERE isActive = 1"
     
@@ -32,20 +33,27 @@ def save_sap_credentials_to_dbfs():
     cursor.execute(query)
     records = cursor.fetchall()
     
+    metadata_list = []
     for record in records:
-        credentials = {
-            "host": get_secret(record[7]),
-            "port": get_secret(record[7]),
-            "user": get_secret(record[7]),
-            "password": get_secret(record[7])
+        metadata = {
+            "sno": record[0],
+            "table_name": record[1],
+            "database": record[2],
+            "domain": record[3],
+            "classification": record[4],
+            "load_type": record[5],
+            "last_ingested_time": record[6],
+            "keyvault_name": record[7],
+            "secret_name": record[8]
         }
-        
-        with open(f'/dbfs/tmp/{record[1]}_credentials.json', 'w') as f:
-            json.dump(credentials, f)
+        metadata_list.append(metadata)
+    
+    with open('/dbfs/tmp/metadata_list.json', 'w') as f:
+        json.dump(metadata_list, f)
 
-save_sap_credentials_task = PythonOperator(
-    task_id='save_sap_credentials',
-    python_callable=save_sap_credentials_to_dbfs,
+fetch_metadata_task = PythonOperator(
+    task_id='fetch_metadata',
+    python_callable=fetch_metadata,
     dag=dag
 )
 
@@ -61,7 +69,7 @@ databricks_spark_conf = {
 notebook_task = {
     "notebook_path": "/IDE/ETL/DataIngestion/SourcetoLanding",
     "base_parameters": {
-        "input_path": "/dbfs/tmp/",
+        "metadata_path": "/dbfs/tmp/metadata_list.json",
         "output_path": "/dbfs/tmp/transformed_data.parquet"
     }
 }
@@ -81,4 +89,4 @@ update_metadata_task = PostgresOperator(
     dag=dag
 )
 
-save_sap_credentials_task >> databricks_task >> update_metadata_task
+fetch_metadata_task >> databricks_task >> update_metadata_task
