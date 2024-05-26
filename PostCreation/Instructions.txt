@@ -1,0 +1,58 @@
+Configuring Connections in Airflow
+
+PostgreSQL Connection:
+Open Airflow UI > Admin > Connections > Add Connection.
+Connection ID: your_postgres_conn_id
+Connection Type: Postgres
+Host, Schema, Login, Password, Port as per your PostgreSQL setup.
+
+Databricks Connection:
+Open Airflow UI > Admin > Connections > Add Connection.
+Connection ID: databricks_default
+Connection Type: Databricks
+Host: <your-databricks-workspace-url>
+Token: <your-databricks-token>
+
+Once done perform the following steps:
+Deploy and Verify
+
+1) Build and Push Docker Image
+# Login to Azure
+az login
+
+# Create an Azure Container Registry if you haven't already
+az acr create --resource-group camp1_dev --name camp1acr --sku Basic
+
+# Login to ACR
+az acr login --name camp1acr
+
+# Build the Docker image
+docker build -t camp1acr.azurecr.io/airflow:latest .
+
+# Push the Docker image to ACR
+docker push camp1acr.azurecr.io/airflow:latest
+-------------------------------------------------------------------
+
+2) Deploy to Azure Container Instances
+# Create the Azure Container Instance
+az container create \
+    --resource-group camp1_dev \
+    --name airflowContainerInstance \
+    --image camp1acr.azurecr.io/airflow:latest \
+    --cpu 2 \
+    --memory 4 \
+    --registry-login-server camp1acr.azurecr.io \
+    --registry-username $(az acr credential show --name camp1acr --query "username" --output tsv) \
+    --registry-password $(az acr credential show --name camp1acr --query "passwords[0].value" --output tsv) \
+    --dns-name-label airflowcontainerinstance \
+    --ports 8080
+
+-------------------------------------------------------------------
+3) Verify Deployment
+az container show \
+    --resource-group camp1_dev \
+    --name airflowContainerInstance \
+    --query "{FQDN:ipAddress.fqdn, ProvisioningState:provisioningState}" \
+    --out table
+
+-------------------------------------------------------------------
