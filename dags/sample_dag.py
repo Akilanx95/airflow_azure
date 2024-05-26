@@ -69,8 +69,7 @@ databricks_spark_conf = {
 notebook_task = {
     "notebook_path": "/IDE/ETL/DataIngestion/SourcetoLanding",
     "base_parameters": {
-        "metadata_path": "/dbfs/tmp/metadata_list.json",
-        "output_path": "/dbfs/tmp/transformed_data.parquet"
+        "metadata_path": "/dbfs/tmp/metadata_list.json"
     }
 }
 
