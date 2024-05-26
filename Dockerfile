@@ -5,9 +5,6 @@ FROM apache/airflow:2.4.1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Airflow configuration files
-COPY airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
-
 # Copy DAGs and plugins
 COPY dags/ ${AIRFLOW_HOME}/dags/
 COPY plugins/ ${AIRFLOW_HOME}/plugins/
