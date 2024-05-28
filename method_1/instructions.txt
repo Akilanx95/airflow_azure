@@ -1,0 +1,32 @@
+1. Get airflow image and required file into local
+git clone https://github.com/puckel/docker-airflow
+
+2. Build docker file based on image pulled from GitHub
+docker-compose -f docker-compose-LocalExecutor.yml -d
+
+3. Login to Azure Container registry in azure portal and create new azure container registry
+
+4. Register the image build using docker to container registry using Azure CLI
+az login  #login to azure portal
+az acr login --name airflow1007   #login to above created azure container registry
+docker tag fc7da610d7083c6a5a2cd3ac7261dde85b1924630a619192db0d1dcf0c84f095 airflow1007.azurecr.io/airflow   #tag the image pulled in above steps
+docker push airflow1007.azurecr.io/airflow   #register image with container registry
+
+5. From Azure portal create container instance based on above registered image and enable port 8080 for accessing UI in networking
+
+6. Access the airflow UI on port 8080 for above created container instance
+
+7. Configuring Connections in Airflow
+
+PostgreSQL Connection:
+Open Airflow UI > Admin > Connections > Add Connection.
+Connection ID: your_postgres_conn_id
+Connection Type: Postgres
+Host, Schema, Login, Password, Port as per your PostgreSQL setup.
+
+Databricks Connection:
+Open Airflow UI > Admin > Connections > Add Connection.
+Connection ID: databricks_default
+Connection Type: Databricks
+Host: <your-databricks-workspace-url>
+Token: <your-databricks-token>
